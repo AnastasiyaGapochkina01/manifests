@@ -1,0 +1,52 @@
+stages:
+  - lint
+  - build
+
+variables:
+  DOCKER_USER: anestesia01
+  DOCKER_REPO: anestesia01/dos-34
+  REGISTRY: https://index.docker.io/v1/
+  PRJ_NAME: metrics
+  TAG: ${DOCKER_REPO}:${PRJ_NAME}-${CI_COMMIT_SHORT_SHA}
+
+linter:
+  stage: lint
+  image: python:3.12-slim
+  before_script:
+    - pip install pylint
+  script:
+    - pylint app.py
+  tags:
+    - dos-34
+  allow_failure: true
+
+build-by-dind:
+  stage: build
+  services:
+    - name: docker:dind
+      alias: docker
+  image: docker:29.5.3
+  before_script:
+    - docker login -u ${DOCKER_USER} -p ${DOCKER_TOKEN}
+  script:
+    - docker build -t ${TAG} .
+    - docker push ${TAG}
+  tags:
+    - dos-34
+
+build-by-kaniko:
+  stage: build
+  variables:
+    REGISTRY: https://index.docker.io/v1/
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$DOCKER_USER\",\"password\":\"$DOCKER_TOKEN\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+        --context "${CI_PROJECT_DIR}"
+        --dockerfile ${CI_PROJECT_DIR}/Dockerfile
+        --destination ${TAG}-kaniko
+  tags:
+    - dos-34

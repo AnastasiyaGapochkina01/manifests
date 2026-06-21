@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: metrcis-postgres-statefulset
+  namespace: metrics-demo
+spec:
+  selector:
+    matchLabels:
+      app: metrics-postgres
+  replicas: 1
+  serviceName: "postgres"
+  template:
+    metadata:
+      labels:
+        app: metrics-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        ports:
+          - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: DB_NAME
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: DB_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: DB_PASSWORD

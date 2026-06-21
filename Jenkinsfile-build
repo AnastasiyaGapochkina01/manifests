@@ -1,0 +1,40 @@
+def git_url = "git@gitlab.com:devops201206/metrics_app.git"
+def Image = ""
+pipeline {
+    agent {label 'yandex'}
+    parameters {
+        gitParameter(name: 'branch', type: 'PT_BRANCH', sortMode: 'DESCENDING_SMART', quickFilterEnabled: true)
+        string(name: 'tag', defaultValue: 'latest', trim: true, description: 'Set tag to build')
+    }
+
+    environment {
+        DOCKER_REPO = "images.anestesia.fun/metrcis/backend"
+    }
+
+    stages {
+        stage('Cloning repo') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: "${branch}"]], userRemoteConfigs: [[credentialsId: 'jenkins-ssh-key', url: "$git_url"]]])
+            }
+        }
+
+        stage('Build image') {
+            steps {
+                script {
+                    Image = docker.build("${env.DOCKER_REPO}:${params.tag}")
+                    
+                }
+            }
+        }
+
+        stage('Push image') {
+            steps {
+                script {
+                    docker.withRegistry('https://images.anestesia.fun', 'harbor-token') {
+                        Image.push()
+                    }
+                }
+            }
+        }
+    }
+}

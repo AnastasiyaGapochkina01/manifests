@@ -1,0 +1,56 @@
+def remote = [:]
+pipeline {
+    agent {label 'yandex'}
+
+    parameters {
+        string(name: 'tag', defaultValue: 'latest', trim: true, description: 'Tag to deploy')
+    }
+
+    environment {
+      DOCKER_REPO = "images.anestesia.fun/metrcis/backend"
+      HOST = "10.129.0.3"
+      DIR = "/var/www/metrics_app"
+    }
+
+    stages {
+        stage('Config credentials') {
+            steps {
+                withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-worker', keyFileVariable: 'private_key', usernameVariable: 'username')]) {
+                    script {
+                        remote.name = "${env.HOST}"
+                        remote.host = "${env.HOST}"
+                        remote.user = "$username"
+                        remote.identity = readFile("$private_key")
+                        remote.allowAnyHosts = true
+                    }
+                }
+            }
+        }
+
+        stage('Pull image') {
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'harbor-token', usernameVariable: 'username', passwordVariable: 'password')]) {
+                    script {
+                        sshCommand remote: remote, command: """
+                          set -ex; set -o pipefail
+                          docker login -u '${username}' -p ${password} images.anestesia.fun
+                          docker pull ${env.DOCKER_REPO}:${params.tag}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    sshCommand remote: remote, command: """
+                      set -ex; set -o pipefail
+                      cd $DIR
+                      APP_IMAGE="${env.DOCKER_REPO}:${params.tag}" docker compose up -d
+                    """
+                }
+            }
+        }
+    }
+}

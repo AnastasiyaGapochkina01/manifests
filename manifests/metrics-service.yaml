@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-backend-service
+  namespace: metrics-demo
+spec:
+  selector:
+    app: metrics-backend
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP

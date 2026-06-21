@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-back-deployment
+  namespace: metrics-demo
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: metrics-backend
+  template:
+    metadata:
+      labels:
+        app: metrics-backend
+    spec:
+      containers:
+      - name: app
+        image: anestesia01/k8s-demo:metrics-demo-1.0.0
+        ports:
+          - containerPort: 5000
+        env:
+        - name: PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: DB_PASSWORD
+        - name: PG_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: DB_USER
+        - name: PG_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: DB_NAME
+        - name: PG_HOST
+          value: "metrcis-postgres-service"
