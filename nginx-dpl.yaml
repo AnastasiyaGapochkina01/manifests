@@ -1,7 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: node-app-dpl
+  name: webserver
+  namespace: default
   labels:
     app: webserver
     kind: nginx
